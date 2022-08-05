@@ -30,9 +30,36 @@ dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    // queryDSL 설정
+    implementation "com.querydsl:querydsl-jpa"
+    implementation "com.querydsl:querydsl-core"
+    implementation "com.querydsl:querydsl-collections"
+    annotationProcessor "com.querydsl:querydsl-apt:${dependencyManagement.importedProperties['querydsl.version']}:jpa" // querydsl JPAAnnotationProcessor 사용 지정
+    annotationProcessor "jakarta.annotation:jakarta.annotation-api" // java.lang.NoClassDefFoundError (javax.annotation.Generated) 대응 코드
+    annotationProcessor "jakarta.persistence:jakarta.persistence-api" // java.lang.NoClassDefFoundError (javax.annotation.Entity) 대응 코드
 }
 
 tasks.named('test') {
     useJUnitPlatform()
 }
-targetCompatibility = JavaVersion.VERSION_16
+
+// Querydsl 설정부
+// 인텔리제이는 직접 설정하지 않고 큐 클래스를 실행하면 그레이들 빌드 할때 그레이들 빌드 도구가 스캔하는 영역과
+// 인텔리제이가 스캔하는 영역이 서로 차이가 있음 그러므로 중복 클래스가 충돌이 날 수도 있어서 해당 코드 추가
+def generated = 'src/main/generated'
+
+// querydsl QClass 파일 생성 위치를 지정
+tasks.withType(JavaCompile) {
+    options.getGeneratedSourceOutputDirectory().set(file(generated))
+}
+
+// java source set 에 querydsl QClass 위치 추가
+sourceSets {
+    main.java.srcDirs += [ generated ]
+}
+
+// gradle clean 시에 QClass 디렉토리 삭제
+clean {
+    delete file(generated)
+}
